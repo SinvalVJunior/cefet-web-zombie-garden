@@ -26,10 +26,15 @@ router.get('/', async (req, res, next) => {
     //   - por exemplo, assim que uma pessoa é excluída, uma mensagem de
     //     sucesso pode ser mostrada
     // - error: idem para mensagem de erro
-    res.render('list-people', {
-      people,
-      success: req.flash('success'),
-      error: req.flash('error')
+    
+
+    res.format({
+      html: () => res.render('list-people', {
+        people,
+        success: req.flash('success'),
+        error: req.flash('error')
+      }),
+      json: () => res.json({ people })
     })
 
   } catch (error) {
@@ -89,6 +94,34 @@ router.get('/new/', (req, res) => {
 //      - Em caso de sucesso do INSERT, colocar uma mensagem feliz
 //      - Em caso de erro do INSERT, colocar mensagem vermelhinha
 
+router.post('/', async (req, res) => {
+
+  const name = req.body.name;
+  if (!name) {
+    req.flash('error', 'Nenhum nome foi passado!')
+    res.redirect('/')
+    return;
+  }
+
+  try {
+    const [result] = await db.execute(`INSERT INTO person (name)
+                                       VALUES (?)`,
+                                      [name])
+    if (result.affectedRows !== 1) {
+      req.flash('error', 'Não foi possível adicionar a pessoa')
+    } else {
+      req.flash('success', 'A pessoa foi inserida no banco de dados')
+    }
+    
+  } catch (error) {
+    req.flash('error', `Erro desconhecido. Descrição: ${error}`)
+
+  } finally {
+    res.redirect('/people')
+  }
+
+});
+
 
 /* DELETE uma pessoa */
 // Exercício 2: IMPLEMENTAR AQUI
@@ -97,6 +130,35 @@ router.get('/new/', (req, res) => {
 //   2. Redirecionar para a rota de listagem de pessoas
 //      - Em caso de sucesso do INSERT, colocar uma mensagem feliz
 //      - Em caso de erro do INSERT, colocar mensagem vermelhinha
+
+
+router.delete('/:id', async (req, res) => {
+
+  const id = req.params.id;
+  if (!id) {
+    req.flash('error', 'Nenhum id foi passado pela URL!')
+    res.redirect('/')
+    return;
+  }
+
+  try {
+    const [result] = await db.execute(`DELETE FROM person
+                                       WHERE ID=?`,
+                                      [id])
+    if (result.affectedRows !== 1) {
+      req.flash('error', 'Não foi possível remover a pessoa')
+    } else {
+      req.flash('success', 'A pessoa foi removida no banco de dados')
+    }
+    
+  } catch (error) {
+    req.flash('error', `Erro desconhecido. Descrição: ${error}`)
+
+  } finally {
+    res.redirect('/people')
+  }
+
+});
 
 
 export default router
